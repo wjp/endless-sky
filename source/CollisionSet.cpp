@@ -76,6 +76,9 @@ void CollisionSet::Clear(int step)
 	// The counts vector starts with two sentinel slots that will be used in the
 	// course of performing the radix sort.
 	counts.resize(CELLS * CELLS + 2u, 0u);
+
+	seens.clear();
+	seenEpoch = 0;
 }
 
 
@@ -96,7 +99,8 @@ void CollisionSet::Add(Body &body)
 		for(int x = minX; x <= maxX; ++x)
 		{
 			auto gx = x & WRAP_MASK;
-			added.emplace_back(&body, x, y);
+			// all.size() will be the index of the current Body in the seens vector
+			added.emplace_back(&body, all.size(), x, y);
 			++counts[gy * CELLS + gx + 2];
 		}
 	}
@@ -128,6 +132,9 @@ void CollisionSet::Finish()
 	}
 
 	// Now, counts[index] is where a certain bin begins.
+
+	// Allocate space for 'seen' trackers. Note that resize zeroes the values.
+	seens.resize(all.size());
 }
 
 
@@ -239,8 +246,8 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 	if(stepY > 0)
 		ry = fullScale - ry;
 
-	// Keep track of which objects we've already considered.
-	set<const Body *> seen;
+	++seenEpoch;
+
 	while(true)
 	{
 		// Examine all objects in the current grid cell.
@@ -254,9 +261,9 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 			if(it->x != gx || it->y != gy)
 				continue;
 
-			if(seen.count(it->body))
+			if(seens[it->seenIndex] == seenEpoch)
 				continue;
-			seen.insert(it->body);
+			seens[it->seenIndex] = seenEpoch;
 
 			// Check if this projectile can hit this object. If either the
 			// projectile or the object has no government, it will always hit.
@@ -337,8 +344,8 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 	int maxX = static_cast<int>(center.X() + outer) >> SHIFT;
 	int maxY = static_cast<int>(center.Y() + outer) >> SHIFT;
 
-	// Keep track of which objects we've already considered.
-	set<const Body *> seen;
+
+	++seenEpoch;
 	result.clear();
 	for(int y = minY; y <= maxY; ++y)
 	{
@@ -357,9 +364,9 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 				if(it->x != x || it->y != y)
 					continue;
 
-				if(seen.count(it->body))
+				if(seens[it->seenIndex] == seenEpoch)
 					continue;
-				seen.insert(it->body);
+				seens[it->seenIndex] = seenEpoch;
 
 				const Mask &mask = it->body->GetMask(step);
 				Point offset = center - it->body->Position();
