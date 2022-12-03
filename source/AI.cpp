@@ -16,6 +16,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "AI.h"
 
 #include "Audio.h"
+#include "CollisionSet.h"
 #include "Command.h"
 #include "DistanceMap.h"
 #include "Flotsam.h"
@@ -502,6 +503,15 @@ void AI::Step(const PlayerInfo &player, Command &activeCommands)
 	UpdateStrengths(strength, playerSystem);
 	CacheShipLists();
 
+	CollisionSet shipCollisions(256u, 32u);
+	for(const shared_ptr<Ship> &it : ships)
+		if(it->GetSystem() == player.GetSystem() && it->Zoom() == 1.)
+			shipCollisions.Add(*it);
+
+	// Get the ship collision set ready to query.
+	shipCollisions.Finish();
+
+
 	// Update the counts of how long ships have been outside the "invisible fence."
 	// If a ship ceases to exist, this also ensures that it will be removed from
 	// the fence count map after a few seconds.
@@ -984,7 +994,7 @@ void AI::Step(const PlayerInfo &player, Command &activeCommands)
 			MoveEscort(*it, command);
 
 		// Force ships that are overlapping each other to "scatter":
-		DoScatter(*it, command);
+		DoScatter(*it, command, shipCollisions);
 
 		it->SetCommands(command);
 		it->SetCommands(firingCommands);
@@ -2721,19 +2731,22 @@ bool AI::DoCloak(Ship &ship, Command &command)
 
 
 
-void AI::DoScatter(Ship &ship, Command &command)
+void AI::DoScatter(Ship &ship, Command &command, const CollisionSet &shipCollisions)
 {
 	if(!command.Has(Command::FORWARD))
 		return;
 
 	double turnRate = ship.TurnRate();
 	double acceleration = ship.Acceleration();
-	// TODO: If there are many ships, use CollisionSet::Circle or another
-	// suitable method to limit which ships are checked.
-	for(const shared_ptr<Ship> &other : ships)
+
+	const vector<Body *> hits = shipCollisions.Circle(ship.Position(), 20);
+
+	for(const Body *o : hits)
 	{
+		const Ship *other = reinterpret_cast<const Ship *>(o);
+
 		// Do not scatter away from yourself, or ships in other systems.
-		if(other.get() == &ship || other->GetSystem() != ship.GetSystem())
+		if(other == &ship || other->GetSystem() != ship.GetSystem())
 			continue;
 
 		// Check for any ships that have nearly the same movement profile as

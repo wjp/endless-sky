@@ -29,6 +29,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 class Angle;
 class AsteroidField;
 class Body;
+class CollisionSet;
 class Flotsam;
 class Government;
 class Minable;
@@ -118,7 +119,7 @@ private:
 	bool DoHarvesting(Ship &ship, Command &command);
 	bool DoCloak(Ship &ship, Command &command);
 	// Prevent ships from stacking on each other when many are moving in sync.
-	void DoScatter(Ship &ship, Command &command);
+	void DoScatter(Ship &ship, Command &command, const CollisionSet &shipCollisions);
 
 	static Point StoppingPoint(const Ship &ship, const Point &targetVelocity, bool &shouldReverse);
 	// Get a vector giving the direction this ship should aim in in order to do
