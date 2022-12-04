@@ -220,10 +220,6 @@ void CollisionSet::Finish()
 		sorted[counts[index]++] = entry;
 	}
 	// Now, counts[index] is where a certain bin begins.
-
-	seen.clear();
-	seen.resize(all.size());
-	seenEpoch = 0;
 }
 
 
@@ -339,7 +335,8 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 	if(stepY > 0)
 		ry = fullScale - ry;
 
-	++seenEpoch;
+	seen.clear();
+	seen.resize(all.size(), false);
 
 	while(true)
 	{
@@ -354,9 +351,9 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 			if(it->x != gx || it->y != gy)
 				continue;
 
-			if(seen[it->seenIndex] == seenEpoch)
+			if(seen[it->seenIndex] == true)
 				continue;
-			seen[it->seenIndex] = seenEpoch;
+			seen[it->seenIndex] = true;
 
 			// Check if this projectile can hit this object. If either the
 			// projectile or the object has no government, it will always hit.
@@ -438,7 +435,8 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 	const int maxX = static_cast<int>(center.X() + outer) >> SHIFT;
 	const int maxY = static_cast<int>(center.Y() + outer) >> SHIFT;
 
-	++seenEpoch;
+	seen.clear();
+	seen.resize(all.size(), false);
 
 	result.clear();
 	for(int y = minY; y <= maxY; ++y)
@@ -458,9 +456,9 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 				if(it->x != x || it->y != y)
 					continue;
 
-				if(seen[it->seenIndex] == seenEpoch)
+				if(seen[it->seenIndex] == true)
 					continue;
-				seen[it->seenIndex] = seenEpoch;
+				seen[it->seenIndex] = true;
 
 				const Mask &mask = it->body->GetMask(step);
 				Point offset = center - it->body->Position();

@@ -97,8 +97,7 @@ private:
 	mutable std::vector<Body *> result;
 
 	// Keep track of which objects we've already considered in "Line" and "Circle" methods.
-	mutable std::vector<unsigned> seen;
-	mutable unsigned seenEpoch;
+	mutable std::vector<bool> seen;
 };
 
 
