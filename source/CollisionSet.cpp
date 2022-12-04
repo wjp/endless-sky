@@ -183,6 +183,7 @@ void CollisionSet::Add(Body &body)
 	int maxY = static_cast<int>(body.Position().Y() + body.Radius()) >> SHIFT;
 
 	// Add a pointer to this object in every grid cell it occupies.
+	bool sharedBetweenCells = false;
 	for(int y = minY; y <= maxY; ++y)
 	{
 		auto gy = y & WRAP_MASK;
@@ -191,6 +192,9 @@ void CollisionSet::Add(Body &body)
 			auto gx = x & WRAP_MASK;
 			added.emplace_back(&body, all.size(), x, y);
 			++counts[gy * CELLS + gx + 2];
+
+			if(sharedBetweenCells) added.back().isShared = true;
+			sharedBetweenCells = true;
 		}
 	}
 
@@ -351,9 +355,12 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 			if(it->x != gx || it->y != gy)
 				continue;
 
-			if(seen[it->seenIndex] == true)
-				continue;
-			seen[it->seenIndex] = true;
+			if(it->isShared)
+			{
+				if(seen[it->seenIndex] == true)
+					continue;
+				seen[it->seenIndex] = true;
+			}
 
 			// Check if this projectile can hit this object. If either the
 			// projectile or the object has no government, it will always hit.
@@ -456,9 +463,12 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 				if(it->x != x || it->y != y)
 					continue;
 
-				if(seen[it->seenIndex] == true)
-					continue;
-				seen[it->seenIndex] = true;
+				if(it->isShared)
+				{
+					if(seen[it->seenIndex] == true)
+						continue;
+					seen[it->seenIndex] = true;
+				}
 
 				const Mask &mask = it->body->GetMask(step);
 				Point offset = center - it->body->Position();

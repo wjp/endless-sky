@@ -64,12 +64,14 @@ private:
 	class Entry {
 	public:
 		Entry() = default;
-		Entry(Body *body, unsigned seenIndex, int x, int y) : body(body), seenIndex(seenIndex), x(x), y(y) {}
+		Entry(Body *body, unsigned seenIndex, int x, int y)
+			: body(body), seenIndex(seenIndex), x(x), y(y), isShared(false) {}
 
 		Body *body;
 		unsigned seenIndex;
 		int x;
 		int y;
+		bool isShared;
 	};
 
 
