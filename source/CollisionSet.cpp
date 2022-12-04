@@ -190,7 +190,7 @@ void CollisionSet::Add(Body &body)
 		for(int x = minX; x <= maxX; ++x)
 		{
 			auto gx = x & WRAP_MASK;
-			added.emplace_back(&body, all.size(), x, y);
+			added.emplace_back(&body, x, y);
 			++counts[gy * CELLS + gx + 2];
 
 			if(sharedBetweenCells) added.back().isShared = true;
@@ -339,15 +339,17 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 	if(stepY > 0)
 		ry = fullScale - ry;
 
-	seen.clear();
-	seen.resize(all.size(), false);
+	for(auto &entry : sorted)
+	{
+		entry.isSeen = false;
+	}
 
 	while(true)
 	{
 		// Examine all objects in the current grid cell.
 		auto i = (gy & WRAP_MASK) * CELLS + (gx & WRAP_MASK);
-		vector<Entry>::const_iterator it = sorted.begin() + counts[i];
-		vector<Entry>::const_iterator end = sorted.begin() + counts[i + 1];
+		vector<Entry>::iterator it = sorted.begin() + counts[i];
+		vector<Entry>::iterator end = sorted.begin() + counts[i + 1];
 		for( ; it != end; ++it)
 		{
 			// Skip objects that were put in this same grid cell only because
@@ -357,9 +359,9 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 
 			if(it->isShared)
 			{
-				if(seen[it->seenIndex] == true)
+				if(it->isSeen == true)
 					continue;
-				seen[it->seenIndex] = true;
+				it->isSeen = true;
 			}
 
 			// Check if this projectile can hit this object. If either the
@@ -417,7 +419,7 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 
 	const auto stop = high_resolution_clock::now();
 
-	timing.AddSample(stop - start, seen.size());
+	timing.AddSample(stop - start, all.size());
 
 	return closer_result.GetClosestBody();
 }
@@ -442,8 +444,10 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 	const int maxX = static_cast<int>(center.X() + outer) >> SHIFT;
 	const int maxY = static_cast<int>(center.Y() + outer) >> SHIFT;
 
-	seen.clear();
-	seen.resize(all.size(), false);
+	for(auto &entry : sorted)
+	{
+		entry.isSeen = false;
+	}
 
 	result.clear();
 	for(int y = minY; y <= maxY; ++y)
@@ -453,8 +457,8 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 		{
 			const auto gx = x & WRAP_MASK;
 			const auto index = gy * CELLS + gx;
-			vector<Entry>::const_iterator it = sorted.begin() + counts[index];
-			vector<Entry>::const_iterator end = sorted.begin() + counts[index + 1];
+			vector<Entry>::iterator it = sorted.begin() + counts[index];
+			vector<Entry>::iterator end = sorted.begin() + counts[index + 1];
 
 			for( ; it != end; ++it)
 			{
@@ -465,9 +469,9 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 
 				if(it->isShared)
 				{
-					if(seen[it->seenIndex] == true)
+					if(it->isSeen == true)
 						continue;
-					seen[it->seenIndex] = true;
+					it->isSeen = true;
 				}
 
 				const Mask &mask = it->body->GetMask(step);

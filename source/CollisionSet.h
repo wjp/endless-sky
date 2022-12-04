@@ -64,14 +64,14 @@ private:
 	class Entry {
 	public:
 		Entry() = default;
-		Entry(Body *body, unsigned seenIndex, int x, int y)
-			: body(body), seenIndex(seenIndex), x(x), y(y), isShared(false) {}
+		Entry(Body *body, int x, int y)
+			: body(body), x(x), y(y), isShared(false), isSeen(false) {}
 
 		Body *body;
-		unsigned seenIndex;
 		int x;
 		int y;
 		bool isShared;
+		bool isSeen;
 	};
 
 
@@ -91,15 +91,12 @@ private:
 	// Vectors to store the objects in the collision set.
 	std::vector<Body *> all;
 	std::vector<Entry> added;
-	std::vector<Entry> sorted;
+	mutable std::vector<Entry> sorted;
 	// After Finish(), counts[index] is where a certain bin begins.
 	std::vector<unsigned> counts;
 
 	// Vector for returning the result of a circle query.
 	mutable std::vector<Body *> result;
-
-	// Keep track of which objects we've already considered in "Line" and "Circle" methods.
-	mutable std::vector<bool> seen;
 };
 
 
