@@ -169,6 +169,8 @@ void CollisionSet::Clear(int step)
 	// The counts vector starts with two sentinel slots that will be used in the
 	// course of performing the radix sort.
 	counts.resize(CELLS * CELLS + 2u, 0u);
+
+	lastCheck = 0;
 }
 
 
@@ -339,10 +341,7 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 	if(stepY > 0)
 		ry = fullScale - ry;
 
-	for(auto &entry : sorted)
-	{
-		entry.isSeen = false;
-	}
+	lastCheck++;
 
 	while(true)
 	{
@@ -359,9 +358,9 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 
 			if(it->isShared)
 			{
-				if(it->isSeen == true)
+				if(it->isSeen == lastCheck)
 					continue;
-				it->isSeen = true;
+				it->isSeen = lastCheck;
 			}
 
 			// Check if this projectile can hit this object. If either the
@@ -444,10 +443,7 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 	const int maxX = static_cast<int>(center.X() + outer) >> SHIFT;
 	const int maxY = static_cast<int>(center.Y() + outer) >> SHIFT;
 
-	for(auto &entry : sorted)
-	{
-		entry.isSeen = false;
-	}
+	lastCheck++;
 
 	result.clear();
 	for(int y = minY; y <= maxY; ++y)
@@ -469,9 +465,9 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 
 				if(it->isShared)
 				{
-					if(it->isSeen == true)
+					if(it->isSeen == lastCheck)
 						continue;
-					it->isSeen = true;
+					it->isSeen = lastCheck;
 				}
 
 				const Mask &mask = it->body->GetMask(step);

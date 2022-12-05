@@ -65,13 +65,13 @@ private:
 	public:
 		Entry() = default;
 		Entry(Body *body, int x, int y)
-			: body(body), x(x), y(y), isShared(false), isSeen(false) {}
+			: body(body), x(x), y(y), isSeen(0), isShared(false) {}
 
 		Body *body;
 		int x;
 		int y;
+		unsigned isSeen;
 		bool isShared;
-		bool isSeen;
 	};
 
 
@@ -97,6 +97,8 @@ private:
 
 	// Vector for returning the result of a circle query.
 	mutable std::vector<Body *> result;
+
+	mutable unsigned lastCheck;
 };
 
 
