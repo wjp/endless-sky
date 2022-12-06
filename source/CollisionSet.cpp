@@ -24,6 +24,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "Ship.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <numeric>
 #include <set>
@@ -268,6 +269,8 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 
 	lastCheck++;
 
+	set<const Body *> seenTest;
+
 	while(true)
 	{
 		// Examine all objects in the current grid cell.
@@ -281,12 +284,18 @@ Body *CollisionSet::Line(const Point &from, const Point &to, double *closestHit,
 			if(it->x != gx || it->y != gy)
 				continue;
 
+			bool oldSeen = seenTest.count(it->body) > 0;
+			seenTest.insert(it->body);
 			if(it->isShared)
 			{
 				if(it->isSeen == lastCheck)
+				{
+					assert(oldSeen);
 					continue;
+				}
 				it->isSeen = lastCheck;
 			}
+			assert(!oldSeen);
 
 			// Check if this projectile can hit this object. If either the
 			// projectile or the object has no government, it will always hit.
@@ -365,6 +374,7 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 	const int maxY = static_cast<int>(center.Y() + outer) >> SHIFT;
 
 	lastCheck++;
+	set<const Body *> seenTest;
 
 	result.clear();
 	for(int y = minY; y <= maxY; ++y)
@@ -384,19 +394,28 @@ const vector<Body *> &CollisionSet::Ring(const Point &center, double inner, doub
 				if(it->x != x || it->y != y)
 					continue;
 
+				bool oldSeen = seenTest.count(it->body) > 0;
+				seenTest.insert(it->body);
 				if(it->isShared)
 				{
 					if(it->isSeen == lastCheck)
+					{
+						assert(oldSeen);
 						continue;
+					}
 					it->isSeen = lastCheck;
 				}
+				assert(!oldSeen);
 
 				const Mask &mask = it->body->GetMask(step);
 				Point offset = center - it->body->Position();
 				const double length = offset.Length();
 				if((length <= outer && length >= inner)
 					|| mask.WithinRing(offset, it->body->Facing(), inner, outer))
+				{
+					assert(std::find(result.begin(), result.end(), it->body) == result.end());
 					result.push_back(it->body);
+				}
 			}
 		}
 	}
